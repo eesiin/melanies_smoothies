@@ -1,41 +1,27 @@
 # Import python packages
 import streamlit as st
-#from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark.functions import col
+import requests
 
-import requests  
-smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
-st.text(smoothiefroot_response)
-
-
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+st.text(smoothiefroot_response.json())  # .json() to display readable response
 
 cnx = st.connection("snowflake")
 session = cnx.session()
 
 # Write directly to the app
 st.title(f"Customize Your Smoothie! :cup_with_straw: {st.__version__}")
-st.write(
-  """Choose the fruits you want in your custom Smoothie!
-  """
-)
+st.write("""Choose the fruits you want in your custom Smoothie!""")
 
-title = st.text_input("Name on Smothie", "")
+title = st.text_input("Name on Smoothie", "")
 st.write("The name on your Smoothie will be ", title)
 
-
-#session = get_active_session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
-#st.dataframe(data=my_dataframe, use_container_width=True)
 
-ingredients_list = st.multiselect ('Choose up to 5 ingredients :',my_dataframe, 
-                                  max_selections=5)
+ingredients_list = st.multiselect('Choose up to 5 ingredients :', my_dataframe,
+                                   max_selections=5)
 
-
-
-if  ingredients_list:
-    #st.write(ingredients_list)
-    #st.text(ingredients_list)
-
+if ingredients_list:
     ingredients_string = ''
     name_on_order = title
 
@@ -44,14 +30,11 @@ if  ingredients_list:
 
     st.write(ingredients_string)
 
-    my_insert_stmt = """ insert into smoothies.public.orders(ingredients,NAME_ON_ORDER)
+    my_insert_stmt = """ insert into smoothies.public.orders(ingredients, NAME_ON_ORDER)
                     values ('""" + ingredients_string + """','""" + name_on_order + """')"""
 
     st.write(my_insert_stmt)
-   
-
-# INSERT INTO DB
 
     if ingredients_string:
         session.sql(my_insert_stmt).collect()
-        st.success('Your Smoothie is ordered!'+ title +' !', icon="✅")
+        st.success('Your Smoothie is ordered for ' + title + '!', icon="✅")
